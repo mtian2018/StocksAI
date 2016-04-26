@@ -8,10 +8,10 @@ from yahoo_finance import Share
 import numpy
 import random
 import operator
+import datetime
 
 # Set the Constants ---------------
 StartingDate = '2015-04-01'
-EndingDate = '2016-04-14'
 PopulationSize = 200
 DataSize = 0
 NumberOfGenerations = 0
@@ -55,10 +55,18 @@ class TrainingData(object):
     nextDayChange = []
     profit = []
 
+    def __init__(self, stockName = '', popSize = None, mRate = None, mChange = None):
+        self.stockName = stockName
+        self.popSize= popSize
+        self.mRate = mRate
+        self.mChange= mChange
+
+    #Generate Data from chosen stock
     def generateData(self):
         global StartingDate
-        global EndingDate
         global DataSize
+        i = datetime.datetime.now()
+        EndingDate = '%s-%s-%s' % (i.year,i.month,i.day)
         stock = Share('AAPL')
         data = stock.get_historical(StartingDate,EndingDate)
         file = open('stock_data', 'w')
@@ -84,6 +92,7 @@ class TrainingData(object):
         DataSize = len(self.dayChange)
         file.close()
 
+    #Initializes the population of random chromosomes
     def populationInit(self):
 
         #Create N Chromosomes with N being the Population Size
@@ -106,9 +115,9 @@ class TrainingData(object):
             #Push the Chromosome into the population array.
             self.population.append(temp)
 
-
+    #Determines score for each chromosome in self.population
     def fitnessFunction(self):
-        for i in range(PopulationSize):
+        for i in range(len(self.population)):
             match = False
             for j in range(DataSize):
 
@@ -132,6 +141,7 @@ class TrainingData(object):
                     self.population[i].score = -5000
             #print(self.population[i].score)
 
+    #Weighted random choice selection
     def weighted_random_choice(self):
         self.fitnessFunction()
         max = self.population[0].score
@@ -144,12 +154,16 @@ class TrainingData(object):
             if current > pick:
                 self.nextGeneration.append(self.population[i])
 
+    #Removes the indices in self.population that have a score of None
     def exists(self):
-        for i in range(len(self.population)):
+        i = 0
+        while i <len(self.population):
             if self.population[i].score is None:
-                self.population.pop(i)
-                i -= 1
+                del self.population[i]
+            else:
+                i+=1
 
+    #Uniform Crossover
     def uniformCross(self, z):
         children = []
         for i in range(PopulationSize-len(self.nextGeneration)):
@@ -193,19 +207,20 @@ class TrainingData(object):
             #Append
             children.append(child)
 
-        # #Mutation
+        #Mutation
         for i in range(len(children)):
             if random.randint(0,999) % 100 <= z:
                 children[i].mutate()
         self.population[i] = children[i]
         for i in range(len(children),len(self.population),1):
             self.population[i] = self.nextGeneration[i-len(children)]
+        self.exists()
         self.fitnessFunction()
         self.population.sort(key=operator.attrgetter('score'))
 
-        self.exists()
-
+    #Print the scores of the chromosomes
     def printChromosomes(self):
+        print(len(self.population))
         for i in range(len(self.population)):
             print(self.population[i].score)
 
@@ -216,4 +231,3 @@ if __name__ == '__main__':
     x.weighted_random_choice()
     x.uniformCross(MutationRate)
     x.printChromosomes()
-
