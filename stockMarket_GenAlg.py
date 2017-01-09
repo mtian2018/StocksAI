@@ -9,14 +9,16 @@ import numpy
 import random
 import operator
 import datetime
-
+random.seed(a=None)
 # Set the Constants ---------------
 StartingDate = '2015-04-01'
 PopulationSize = 200
 DataSize = 0
-NumberOfGenerations = 0
+NumberOfGenerations = 4
 MutationRate = 5
 MutationChange = 2
+Stock_name = 'AAPL'
+NumReturn = 5
 #----------------------------------
 
 class Chromosome():
@@ -36,13 +38,13 @@ class Chromosome():
         if toChange == 0:
            self.buy = random.randint(0,999)%2
         if toChange == 1:
-            self.min = x.next()
+            self.min = next(x)
         if toChange == 2:
-            self.max = x.next()
+            self.max = next(x)
         if toChange == 3:
-            self.prev_min = x.next()
+            self.prev_min = next(x)
         if toChange == 4:
-            self.prev_max = x.next()
+            self.prev_max = next(x)
         if self.min > self.max:
             self.min, self.max = self.max, self.min
         if self.prev_min > self.prev_max:
@@ -67,7 +69,7 @@ class TrainingData(object):
         global DataSize
         i = datetime.datetime.now()
         EndingDate = '%s-%s-%s' % (i.year,i.month,i.day)
-        stock = Share('AAPL')
+        stock = Share(Stock_name)
         data = stock.get_historical(StartingDate,EndingDate)
         file = open('stock_data', 'w')
         closes = [c['Close'] for c in data]
@@ -103,7 +105,7 @@ class TrainingData(object):
         s = numpy.random.normal(mu, sigma, 4*PopulationSize)
         x = iter(s)
         for i in range(PopulationSize):
-            temp = Chromosome(x.next(),x.next(),x.next(),x.next(),random.randint(0,999)%2, 0)
+            temp = Chromosome(next(x),next(x),next(x),next(x),random.randint(0,999)%2, 0)
 
             #If the mininum is assigned a higher value than the max swap them
             #so that it makes sense.
@@ -220,9 +222,30 @@ class TrainingData(object):
 
     #Print the scores of the chromosomes
     def printChromosomes(self):
-        print(len(self.population))
+        buyRec = []
+        shortRec = []
         for i in range(len(self.population)):
-            print(self.population[i].score)
+            if(self.population[i].buy == 1):
+                buyRec.append(self.population[i])
+            if(self.population[i].buy == 0):
+                shortRec.append(self.population[i])
+
+        print("The Best %d Chromosomes When Buying" % (NumReturn))
+        i = 1
+        size = len(buyRec)
+        while i < NumReturn + 1:
+            index = size - i
+            print("min: %f  | max: %f  | previous min: %f  | previous max: %f  |  score: %f" % (buyRec[index].min, buyRec[index].max, buyRec[index].prev_min, buyRec[index].prev_max, buyRec[index].score))
+            i += 1
+
+        print("The Best %d Chromosomes When Shorting" % (NumReturn))
+        i = 1
+        size = len(shortRec)
+        while i < NumReturn+1:
+            index = size-i
+            print("min: %f  | max: %f  | previous min: %f  | previous max: %f  |  score: %f" % (shortRec[index].min, shortRec[index].max, shortRec[index].prev_min, shortRec[index].prev_max, shortRec[index].score))
+            i+=1
+        #print("Todays Stats")
 
 if __name__ == '__main__':
     x = TrainingData()
